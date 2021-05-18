@@ -1,6 +1,7 @@
 """BCI Helper"""
 
 # imports
+import math
 import os
 import sys
 from tempfile import gettempdir
@@ -12,6 +13,7 @@ from sklearn.ensemble import RandomForestClassifier
 from scipy.signal import butter, lfilter, lfilter_zi
 from pylsl import StreamInlet, resolve_byprop  # Module to receive EEG data
 
+# -*- coding: utf-8 -*-
 
 # initialize notches for bandpass filter
 NOTCH_B, NOTCH_A = butter(4, np.array([55, 65])/(256/2), btype='bandstop')
@@ -416,52 +418,109 @@ class DataPlotter():
 
         plt.close(self.fig)
 
-	def calculateArousal(epoch, freq):
-		# arousal = meanBeta / meanAlpha
-		sample_length, n_channels = epoch.shape
+def calculateArousal(epoch, freq):
+	# arousal = meanBeta / meanAlpha
+	sample_length, n_channels = epoch.shape
 
-		# length of axis for FFT output
-		n_axis = next_pow_2(sample_length)
+	# length of axis for FFT output
+	n_axis = next_pow_2(sample_length)
 
-		# frequency bins so separate features
-		freq_bin = freq / 2 * np.linspace(0, 1, int(n_axis / 2))
+	# frequency bins so separate features
+	freq_bin = freq / 2 * np.linspace(0, 1, int(n_axis / 2))
 
-		# Alpha 8-12
-		alpha_index, = np.where((freq_bin >= 8) & (freq_bin <= 12))
-		meanAlpha    = np.mean(PSD[alpha_index, :], axis=0)
+	# Alpha 8-12
+	alpha_index, = np.where((freq_bin >= 8) & (freq_bin <= 12))
+	meanAlpha    = np.mean(PSD[alpha_index, :], axis=0)
 
-		# Beta 12-30
-		beta_index,  = np.where((freq_bin >= 12) & (freq_bin < 30))
-		meanBeta     = np.mean(PSD[beta_index, :], axis=0)
+	# Beta 12-30
+	beta_index,  = np.where((freq_bin >= 12) & (freq_bin < 30))
+	meanBeta     = np.mean(PSD[beta_index, :], axis=0)
 
-		return meanBeta/meanAlpha
+	return meanBeta/meanAlpha
 	
-	def calculateValence(epoch, freq, electrodeRight, electrodeLeft):
-		# valence = alphaRIGHT/betaRIGHT − alphaLEFT/betaLEFT
-		sample_length, n_channels = epoch.shape
+def calculateValence(epoch, freq, electrodeRight, electrodeLeft):
+	# valence = alphaRIGHT/betaRIGHT - alphaLEFT/betaLEFT
+	sample_length, n_channels = epoch.shape
+	# length of axis for FFT output
+	n_axis = next_pow_2(sample_length)
 
-		# length of axis for FFT output
-		n_axis = next_pow_2(sample_length)
+	# frequency bins so separate features
+	freq_bin = freq / 2 * np.linspace(0, 1, int(n_axis / 2))
+	'''
+		somehow need to incorporate different
+		electrodes to calculate 4 vars
+		For left vs  right u want to look 
+		at electrodes on the left vs right
+	(so AF7 vs AF8) I think
+	'''
+	alphaRight_index, = np.where((freq_bin >= 4) & (freq_bin <= 12))
+	alphaRight  = np.mean(PSD[alphaRight_index, :], axis=0)
 
-		# frequency bins so separate features
-		freq_bin = freq / 2 * np.linspace(0, 1, int(n_axis / 2))
-		'''
-		 somehow need to incorporate different
-		 electrodes to calculate 4 vars
-		 For left vs  right u want to look 
-		 at electrodes on the left vs right
-		(so AF7 vs AF8) I think
-		'''
-		alphaRight_index, = np.where((freq_bin >= 4) & (freq_bin <= 12))
-		alphaRight  = np.mean(PSD[alphaRight_index, :], axis=0)
+	alphaLeft_index, = np.where((freq_bin >= 4) & (freq_bin <= 12))
+	alphaLeft  = np.mean(PSD[alphaLeft_index, :], axis=0)
 
-		alphaLeft_index, = np.where((freq_bin >= 4) & (freq_bin <= 12))
-		alphaLeft  = np.mean(PSD[alphaLeft_index, :], axis=0)
+	betaRight_index, = np.where((freq_bin >= 13) & (freq_bin <= 30))
+	betaRight  = np.mean(PSD[betaRight_index, :], axis=0)
 
-		betaRight_index, = np.where((freq_bin >= 13) & (freq_bin <= 30))
-		betaRight  = np.mean(PSD[betaRight_index, :], axis=0)
+	betaLeft_index, = np.where((freq_bin >= 13) & (freq_bin <= 30))
+	betaLeft  = np.mean(PSD[betaLeft_index, :], axis=0)
 
-		betaLeft_index, = np.where((freq_bin >= 13) & (freq_bin <= 30))
-		betaLeft  = np.mean(PSD[betaLeft_index, :], axis=0)
+	return (alphaRight/betaRight)-(alphaLeft/ betaLeft)
 
-		return (alphaRight/betaRight)-(alphaLeft/ betaLeft)
+def generateNewNote(epoch, freq, electrodeRight, electrodeLeft):
+	# have one epoch and can select only one
+	# electrode within that epoch
+	# (one row in the array). The data I
+	# think is a 2d array with number of 
+	# electrodes x time points, so to choose just
+	# one electrode you would use just one row.
+	valence = calculateValence(epoch, freq, electrodeRight, electrodeLeft)
+	arousal = calculateArousal(epoch, freq)
+
+
+	# imagine unit circle given radius 10
+
+	# high valence, high arousal (0-10 for each)
+	# low valence, high arousal (-10-0 V, 0-10 A)
+	# high valence, low arousal (0-10 V, -10-0 A)
+	# low valence, low arousal (-10-0 for each)
+
+	# if valence is negative add pi 
+	if (valence < 0):
+		angle = math.atan(valence/arousal) + math.pi
+	else:
+		angle = math.atan(valence/arousal)
+
+	math.degrees(angle)
+
+	# first quadrant 
+	if (angle > 0 & angle <= 30):
+		emotion = "pleased"
+	if (angle > 30 & angle <= 60):
+		emotion = "happy"
+	if (angle > 60 & angle <= 90):
+		emotion = "excited"
+
+	# second quadrant 
+	if (angle > 90 & angle <= 120):
+		emotion = "annoyed"
+	if (angle > 120 & angle <= 150):
+		emotion - "angry"
+	if (angle > 150 & angle <= 180):
+		emotion = "nervous"
+
+	# third quadrant 
+	if (angle > 180 & angle <= 210):
+		emotion = "sad"
+	if (angle > 210 & angle <= 240):
+		emotion - "bored"
+	if (angle > 240 & angle <= 270):
+		emotion = "sleepy"
+
+	# fourth quadrant 
+	if (angle <= 0 & angle >= -30):
+		emotion = "relaxed"
+	if (angle < -30 & angle >= -60):
+		emotion = "peaceful"
+	if (angle < -60 & angle >= -90):
+		emotion = "calm"

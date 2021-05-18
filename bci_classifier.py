@@ -94,6 +94,7 @@ if __name__ == "__main__":
 
    
     """ PULL DATA AND TEST CLASSIFIER """
+    """
     try:
         while True:
 
@@ -140,3 +141,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
 
         print('Closed!')
+"""
