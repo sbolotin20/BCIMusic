@@ -17,7 +17,7 @@ OVERLAP_LENGTH  = 0.8
 SHIFT_LENGTH    = EPOCH_LENGTH - OVERLAP_LENGTH
 TRAINING_LENGTH = 20
 INDEX_CHANNEL   = [0, 1 , 2, 3] # use all four electrodes
-N_CHANNELS      = 4
+N_CHANNELS      = 1
 
 
 if __name__ == "__main__":
@@ -42,15 +42,6 @@ if __name__ == "__main__":
     print('Keep Eyes Open')
     eeg_data0 = BCI.record_eeg(TRAINING_LENGTH, freq, INDEX_CHANNEL)
     
-    print("Move Eyes Side to Side")
-    eeg_data1 = BCI.record_eeg(TRAINING_LENGTH, freq, INDEX_CHANNEL)
-   
-    print("Move Eyes Up and Down")
-    eeg_data2 = BCI.record_eeg(TRAINING_LENGTH, freq, INDEX_CHANNEL)
-
-    print("Blink Rapidly ")
-    eeg_data3 = BCI.record_eeg(TRAINING_LENGTH, freq, INDEX_CHANNEL)
-
     
     # Divide data into epochs
     eeg_epochs0 = BCI.epoch_array(eeg_data0, EPOCH_LENGTH, OVERLAP_LENGTH * freq, freq)
@@ -61,17 +52,12 @@ if __name__ == "__main__":
    
    	# Computer corresponding features
     feat_matrix0 = BCI.compute_feature_matrix(eeg_epochs0, freq)
-    feat_matrix1 = BCI.compute_feature_matrix(eeg_epochs1, freq)
-    feat_matrix2 = BCI.compute_feature_matrix(eeg_epochs2, freq)
-    feat_matrix3 = BCI.compute_feature_matrix(eeg_epochs3, freq)
     
 
     # Train Classifier
     [classifier, mu_ft, std_ft, score] = BCI.train_classifier(
                                             feat_matrix0, 
-                                            feat_matrix1, 
-                                            feat_matrix2, 
-                                            feat_matrix3, 
+ 
                                             'RandomForestClassifier')
 
     print(str(score * 100) + '% correctly predicted')
