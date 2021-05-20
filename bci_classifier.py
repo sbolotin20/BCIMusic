@@ -92,6 +92,12 @@ if __name__ == "__main__":
     #listen for an avaliable client for 5 seconds
     s.listen(5)
 
+    data_epoch = BCI.get_last_data(eeg_buffer,
+                                            EPOCH_LENGTH * freq)
+
+    arousal = BCI.calculateArousal(data_epoch, freq)
+    print(arousal)
+
    
     """ PULL DATA AND TEST CLASSIFIER """
     """
