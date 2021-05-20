@@ -52,11 +52,13 @@ if __name__ == "__main__":
    
    	# Computer corresponding features
     feat_matrix0 = BCI.compute_feature_matrix(eeg_epochs0, freq)
+    feat_matrix1 = BCI.compute_feature_matrix(eeg_epochs1, freq)
+    feat_matrix2 = BCI.compute_feature_matrix(eeg_epochs2, freq)
     
 
     # Train Classifier
     [classifier, mu_ft, std_ft, score] = BCI.train_classifier(
-                                            feat_matrix0, 
+                                            feat_matrix0, feat_matrix1, feat_matrix2,
  
                                             'RandomForestClassifier')
 
