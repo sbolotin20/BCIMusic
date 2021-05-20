@@ -523,4 +523,8 @@ def generateNewNote(epoch, freq, electrodeRight, electrodeLeft):
 	if (angle < -30 & angle >= -60):
 		emotion = "peaceful"
 	if (angle < -60 & angle >= -90):
+<<<<<<< HEAD
 		emotion = "calm"
+=======
+		emotion = "calm"
+>>>>>>> 98f350c5729a4f1bc6d66296613a490d364ab116
